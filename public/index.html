@@ -3,179 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🔌 XHTTP Configuration Checker</title>
+  <title>XHTTP Status</title>
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0c10;
-      color: #e0e0e0;
-      margin: 0;
-      padding: 2rem 1rem;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-    .card {
-      max-width: 800px;
-      width: 100%;
-      background: #1e1f24;
-      border-radius: 24px;
-      padding: 2rem;
-      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.4);
-      border: 1px solid #2c2e36;
-    }
-    h1 {
-      margin: 0 0 0.5rem 0;
-      font-weight: 600;
-      font-size: 1.8rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    h1 small {
-      font-size: 0.8rem;
-      background: #2c2e36;
-      padding: 4px 12px;
-      border-radius: 40px;
-      font-weight: normal;
-    }
-    .status-badge {
-      display: inline-block;
-      padding: 6px 14px;
-      border-radius: 40px;
-      font-size: 0.8rem;
-      font-weight: 500;
-      margin-top: 8px;
-    }
-    .status-ok { background: #0f3b2c; color: #6febaf; border-left: 3px solid #2ccc6d; }
-    .status-error { background: #3b2222; color: #ff9e9e; border-left: 3px solid #f55; }
-    .info-grid {
-      background: #0f1117;
-      border-radius: 18px;
-      padding: 1.2rem;
-      margin: 1.5rem 0;
-    }
-    .grid-row {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid #2a2c34;
-      padding: 12px 0;
-    }
-    .grid-row:last-child { border-bottom: none; }
-    .label { font-weight: 500; color: #aaa; }
-    .value { font-family: 'SF Mono', monospace; word-break: break-all; text-align: right; }
-    button {
-      background: #2f3b6c;
-      border: none;
-      color: white;
-      padding: 12px 24px;
-      border-radius: 40px;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: 0.2s;
-      width: 100%;
-      margin-top: 12px;
-    }
-    button:hover { background: #3e4d88; transform: scale(0.98); }
-    .footer-note {
-      font-size: 0.75rem;
-      text-align: center;
-      margin-top: 24px;
-      color: #6f6f7c;
-    }
-    .loading {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      padding: 24px;
-    }
-    .spinner {
-      width: 20px;
-      height: 20px;
-      border: 2px solid #3e4d88;
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    body { font-family: system-ui; background: #0a0c10; color: #eee; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 1rem; }
+    .card { background: #1e1f24; border-radius: 24px; padding: 2rem; max-width: 600px; }
+    button { background: #2f3b6c; border: none; color: white; padding: 12px 24px; border-radius: 40px; cursor: pointer; width: 100%; margin-top: 1rem; }
+    .status { margin-top: 1rem; padding: 1rem; background: #0f1117; border-radius: 16px; }
+    .ok { color: #6febaf; }
+    .error { color: #ff9e9e; }
   </style>
 </head>
 <body>
 <div class="card">
-  <h1>🔍 XHTTP Configuration Monitor <small>v2 – diagnostic only</small></h1>
-  <p>Checks connectivity to your <code>TARGET_DOMAIN</code>.<br>
-  ⚠️ <strong>No traffic is proxied or forwarded</strong> — this complies with Vercel’s Acceptable Use Policy.</p>
-
-  <div id="statusContainer" class="info-grid">
-    <div class="loading"><div class="spinner"></div> Running diagnostics...</div>
-  </div>
-
-  <button id="refreshBtn">⟳ Refresh Status</button>
-  <div class="footer-note">
-    • Environment variable <code>TARGET_DOMAIN</code> must be set in Vercel dashboard.<br>
-    • This tool only performs HEAD requests to your origin – fully compliant.
-  </div>
+  <h2>🔍 XHTTP Relay Monitor</h2>
+  <p>وضعیت اتصال به <code>TARGET_DOMAIN</code> را بررسی می‌کند.</p>
+  <button id="checkBtn">بررسی وضعیت</button>
+  <div id="result" class="status">⏳ کلیک کنید...</div>
+  <div class="footer">• پراکسی فعال است • درخواست‌های دیگر به سرور اصلی هدایت می‌شوند</div>
 </div>
-
 <script>
-  async function fetchStatus() {
-    const container = document.getElementById('statusContainer');
-    container.innerHTML = `<div class="loading"><div class="spinner"></div> Checking endpoint...</div>`;
-
+  document.getElementById('checkBtn').onclick = async () => {
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = "🔄 در حال بررسی...";
     try {
-      // تغییر مسیر به /api?action=check (نه /api/status)
       const res = await fetch('/api?action=check');
       const data = await res.json();
-
-      if (!res.ok || data.status === 'error') {
-        container.innerHTML = `
-          <div class="status-badge status-error">⚠️ DIAGNOSTIC FAILED</div>
-          <div style="margin-top: 1rem;">
-            <div class="grid-row"><span class="label">Error message</span><span class="value">${escapeHtml(data.message || 'Unknown error')}</span></div>
-            <div class="grid-row"><span class="label">Timestamp</span><span class="value">${escapeHtml(data.timestamp || new Date().toISOString())}</span></div>
-          </div>
-        `;
-        return;
+      if (data.reachable) {
+        resultDiv.innerHTML = `<span class="ok">✅ سرور قابل دسترسی است (${data.timestamp})</span>`;
+      } else {
+        resultDiv.innerHTML = `<span class="error">❌ سرور پاسخ نمی‌دهد</span>`;
       }
-
-      // پاسخ پراکسی ساده است: { status: "ok", reachable: true/false }
-      const isReachable = data.reachable === true;
-      const overall = isReachable ? 'ok' : 'error';
-
-      container.innerHTML = `
-        <div class="status-badge ${overall === 'ok' ? 'status-ok' : 'status-error'}">
-          ${overall === 'ok' ? '✅ BACKEND REACHABLE' : '❌ BACKEND UNREACHABLE'}
-        </div>
-        <div style="margin-top: 1rem;">
-          <div class="grid-row"><span class="label">Target Domain</span><span class="value">${escapeHtml(data.target || '(from environment)')}</span></div>
-          <div class="grid-row"><span class="label">Health Check (HEAD /health)</span><span class="value">${isReachable ? 'successful' : 'failed'}</span></div>
-          <div class="grid-row"><span class="label">Last Checked</span><span class="value">${escapeHtml(data.timestamp || new Date().toISOString())}</span></div>
-        </div>
-      `;
-    } catch (err) {
-      container.innerHTML = `
-        <div class="status-badge status-error">⚠️ REQUEST FAILED</div>
-        <div class="grid-row"><span class="label">Error</span><span class="value">${escapeHtml(err.message)}</span></div>
-      `;
+    } catch {
+      resultDiv.innerHTML = `<span class="error">⚠️ خطا در ارتباط با API</span>`;
     }
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
-  }
-
-  document.getElementById('refreshBtn').addEventListener('click', fetchStatus);
-  fetchStatus();
+  };
 </script>
 </body>
 </html>
