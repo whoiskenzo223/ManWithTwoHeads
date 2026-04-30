@@ -1,0 +1,7 @@
+{
+  "name": "xhttp-config-checker",
+  "version": "2.0.0",
+  "description": "Edge runtime configuration checker for XHTTP backends (diagnostic only)",
+  "private": true,
+  "license": "MIT"
+}

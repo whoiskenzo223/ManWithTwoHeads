@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "name": "xhttp-config-checker",
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/status" }],
+  "trailingSlash": false
+}

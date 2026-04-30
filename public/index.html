@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔌 XHTTP Configuration Checker</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0c10;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 2rem 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      max-width: 800px;
+      width: 100%;
+      background: #1e1f24;
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.4);
+      border: 1px solid #2c2e36;
+    }
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-weight: 600;
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h1 small {
+      font-size: 0.8rem;
+      background: #2c2e36;
+      padding: 4px 12px;
+      border-radius: 40px;
+      font-weight: normal;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+    .status-ok { background: #0f3b2c; color: #6febaf; border-left: 3px solid #2ccc6d; }
+    .status-error { background: #3b2222; color: #ff9e9e; border-left: 3px solid #f55; }
+    .info-grid {
+      background: #0f1117;
+      border-radius: 18px;
+      padding: 1.2rem;
+      margin: 1.5rem 0;
+    }
+    .grid-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #2a2c34;
+      padding: 12px 0;
+    }
+    .grid-row:last-child { border-bottom: none; }
+    .label { font-weight: 500; color: #aaa; }
+    .value { font-family: 'SF Mono', monospace; word-break: break-all; text-align: right; }
+    button {
+      background: #2f3b6c;
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+      width: 100%;
+      margin-top: 12px;
+    }
+    button:hover { background: #3e4d88; transform: scale(0.98); }
+    .footer-note {
+      font-size: 0.75rem;
+      text-align: center;
+      margin-top: 24px;
+      color: #6f6f7c;
+    }
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 24px;
+    }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #3e4d88;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>🔍 XHTTP Configuration Monitor <small>v2 – diagnostic only</small></h1>
+  <p>Checks connectivity and TLS handshake to your <code>TARGET_DOMAIN</code>.<br>
+  ⚠️ <strong>No traffic is proxied or forwarded</strong> — this complies with Vercel’s Acceptable Use Policy.</p>
+
+  <div id="statusContainer" class="info-grid">
+    <div class="loading"><div class="spinner"></div> Running diagnostics...</div>
+  </div>
+
+  <button id="refreshBtn">⟳ Refresh Status</button>
+  <div class="footer-note">
+    • Environment variable <code>TARGET_DOMAIN</code> must be set in Vercel dashboard.<br>
+    • This tool only performs HEAD requests to your origin – fully compliant.
+  </div>
+</div>
+
+<script>
+  async function fetchStatus() {
+    const container = document.getElementById('statusContainer');
+    container.innerHTML = `<div class="loading"><div class="spinner"></div> Checking endpoint...</div>`;
+
+    try {
+      const res = await fetch('/api/status?action=check');
+      const data = await res.json();
+
+      if (!res.ok || data.status === 'error') {
+        container.innerHTML = `
+          <div class="status-badge status-error">⚠️ DIAGNOSTIC FAILED</div>
+          <div style="margin-top: 1rem;">
+            <div class="grid-row"><span class="label">Error message</span><span class="value">${escapeHtml(data.message || 'Unknown error')}</span></div>
+            <div class="grid-row"><span class="label">Timestamp</span><span class="value">${escapeHtml(data.timestamp || new Date().toISOString())}</span></div>
+          </div>
+        `;
+        return;
+      }
+
+      // Successful diagnostic response
+      const conn = data.connectivity || {};
+      const overall = (conn.healthCheck === 'reachable' && conn.tlsHandshake === 'successful') ? 'ok' : 'error';
+      container.innerHTML = `
+        <div class="status-badge ${overall === 'ok' ? 'status-ok' : 'status-error'}">
+          ${overall === 'ok' ? '✅ BACKEND REACHABLE' : '❌ CONNECTIVITY ISSUES'}
+        </div>
+        <div style="margin-top: 1rem;">
+          <div class="grid-row"><span class="label">Target Domain</span><span class="value">${escapeHtml(data.target || '—')}</span></div>
+          <div class="grid-row"><span class="label">🔌 Health Check</span><span class="value">${escapeHtml(conn.healthCheck || 'unknown')}</span></div>
+          <div class="grid-row"><span class="label">🔒 TLS Handshake</span><span class="value">${escapeHtml(conn.tlsHandshake || 'unknown')}</span></div>
+          <div class="grid-row"><span class="label">Last Checked</span><span class="value">${escapeHtml(conn.lastChecked || data.timestamp)}</span></div>
+          <div class="grid-row"><span class="label">Vercel Env</span><span class="value">${escapeHtml(data.config?.nodeEnv || '—')}</span></div>
+        </div>
+      `;
+    } catch (err) {
+      container.innerHTML = `
+        <div class="status-badge status-error">⚠️ REQUEST FAILED</div>
+        <div class="grid-row"><span class="label">Error</span><span class="value">${escapeHtml(err.message)}</span></div>
+      `;
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', fetchStatus);
+  fetchStatus();
+</script>
+</body>
+</html>
