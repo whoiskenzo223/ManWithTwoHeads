@@ -1,11 +1,7 @@
 {
-  "_comment_random": "این خط توسط اسکریپت ابهام‌افکنی اضافه شده - تأثیری در اجرا ندارد",
-  "name": "edge-xhttp-proxy-gateway",
-  "version": "2.0.0",
-  "description": "High-performance Edge Runtime gateway for XHTTP tunneling via Vercel network",
+  "name": "vercel-xhttp-relay",
+  "version": "1.0.0",
+  "type": "module",
   "private": true,
-  "license": "MIT",
-  "_dummy_field_1": "ignore_this_72a3f",
-  "_obfuscation_note": "تغییرات فقط برای دور زدن شناسایی خودکار - بدون تغییر منطق اصلی",
-  "_timestamp": "2026-04-29T00:00:00Z"
+  "description": "XHTTP relay for Vercel Edge Functions"
 }
