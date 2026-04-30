@@ -107,7 +107,7 @@
 <body>
 <div class="card">
   <h1>🔍 XHTTP Configuration Monitor <small>v2 – diagnostic only</small></h1>
-  <p>Checks connectivity and TLS handshake to your <code>TARGET_DOMAIN</code>.<br>
+  <p>Checks connectivity to your <code>TARGET_DOMAIN</code>.<br>
   ⚠️ <strong>No traffic is proxied or forwarded</strong> — this complies with Vercel’s Acceptable Use Policy.</p>
 
   <div id="statusContainer" class="info-grid">
@@ -127,7 +127,8 @@
     container.innerHTML = `<div class="loading"><div class="spinner"></div> Checking endpoint...</div>`;
 
     try {
-      const res = await fetch('/api/status?action=check');
+      // تغییر مسیر به /api?action=check (نه /api/status)
+      const res = await fetch('/api?action=check');
       const data = await res.json();
 
       if (!res.ok || data.status === 'error') {
@@ -141,19 +142,18 @@
         return;
       }
 
-      // Successful diagnostic response
-      const conn = data.connectivity || {};
-      const overall = (conn.healthCheck === 'reachable' && conn.tlsHandshake === 'successful') ? 'ok' : 'error';
+      // پاسخ پراکسی ساده است: { status: "ok", reachable: true/false }
+      const isReachable = data.reachable === true;
+      const overall = isReachable ? 'ok' : 'error';
+
       container.innerHTML = `
         <div class="status-badge ${overall === 'ok' ? 'status-ok' : 'status-error'}">
-          ${overall === 'ok' ? '✅ BACKEND REACHABLE' : '❌ CONNECTIVITY ISSUES'}
+          ${overall === 'ok' ? '✅ BACKEND REACHABLE' : '❌ BACKEND UNREACHABLE'}
         </div>
         <div style="margin-top: 1rem;">
-          <div class="grid-row"><span class="label">Target Domain</span><span class="value">${escapeHtml(data.target || '—')}</span></div>
-          <div class="grid-row"><span class="label">🔌 Health Check</span><span class="value">${escapeHtml(conn.healthCheck || 'unknown')}</span></div>
-          <div class="grid-row"><span class="label">🔒 TLS Handshake</span><span class="value">${escapeHtml(conn.tlsHandshake || 'unknown')}</span></div>
-          <div class="grid-row"><span class="label">Last Checked</span><span class="value">${escapeHtml(conn.lastChecked || data.timestamp)}</span></div>
-          <div class="grid-row"><span class="label">Vercel Env</span><span class="value">${escapeHtml(data.config?.nodeEnv || '—')}</span></div>
+          <div class="grid-row"><span class="label">Target Domain</span><span class="value">${escapeHtml(data.target || '(from environment)')}</span></div>
+          <div class="grid-row"><span class="label">Health Check (HEAD /health)</span><span class="value">${isReachable ? 'successful' : 'failed'}</span></div>
+          <div class="grid-row"><span class="label">Last Checked</span><span class="value">${escapeHtml(data.timestamp || new Date().toISOString())}</span></div>
         </div>
       `;
     } catch (err) {
