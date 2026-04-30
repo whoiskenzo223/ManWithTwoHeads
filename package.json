@@ -1,7 +1,8 @@
 {
-  "name": "xhttp-config-checker",
-  "version": "2.0.0",
-  "description": "Edge runtime configuration checker for XHTTP backends (diagnostic only)",
+  "name": "xhttp-edge-relay",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Secure XHTTP relay for Vercel Edge Functions",
   "private": true,
   "license": "MIT"
 }
